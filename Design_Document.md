@@ -256,7 +256,7 @@ sequenceDiagram
 | **2025** | ~100M trips | s3://nyc-tlc/trip-data/yellow_tripdata_2025-*.parquet | Current year patterns |
 | **Combined** | ~200M trips | Both prefixes | Temporal comparison analysis |
 
-## 6. Algorithm Implementation Design
+## 6. Streaming Algorithms Implementation Design
 
 ### 6.1 Reservoir Sampling Design
 
@@ -332,6 +332,243 @@ flowchart LR
 | **CityHash** | Optimized for strings | Trip ID hashing |
 | **SHA-256** | High quality, slower | Critical deduplication |
 
+### 6.3 Flajolet-Martin Algorithm Design
+
+**Purpose:** Estimate distinct counts (unique passengers, zones, drivers) in streaming data with minimal memory
+
+```mermaid
+flowchart TD
+    A[Stream: Trip Event] --> B[Extract Keys:<br/>trip_id, passenger_id, zone_id]
+    B --> C[Hash to Binary]
+    C --> D[Count Trailing Zeros: r]
+    D --> E{r > max_r?}
+    E -->|Yes| F[Update max_r]
+    E -->|No| G[Keep Current max_r]
+    F --> H[Estimate = 2^max_r]
+    G --> H
+    H --> I[Apply Correction Factor:<br/>φ ≈ 0.77351]
+```
+
+**Multi-hash Configuration:**
+
+| Metric | Hash Groups | Buckets per Group | Memory | Accuracy |
+|--------|-------------|-------------------|---------|----------|
+| **Distinct Zones** | 16 groups | 8 hash functions | ~2 KB | ±15% (median estimate) |
+| **Distinct Passengers** | 32 groups | 16 hash functions | ~4 KB | ±10% |
+| **Distinct Trip IDs** | 64 groups | 32 hash functions | ~8 KB | ±8% |
+
+**Application to NYC Taxi Data:**
+
+| Use Case | FM Application | Benefit |
+|----------|----------------|---------|
+| **Unique Zone Coverage** | Estimate distinct pickup/dropoff locations per hour | Understand service area without storing all zones |
+| **Passenger Diversity** | Count unique passenger patterns in real-time | Memory-efficient diversity tracking |
+| **Driver Activity** | Estimate number of active drivers per time window | Fleet management insights |
+
+### 6.4 DGIM Algorithm Design
+
+**Purpose:** Count number of trips in sliding time windows with logarithmic memory
+
+```mermaid
+flowchart LR
+    A[Binary Stream:<br/>Trip=1, NoTrip=0] --> B[Bucket Creation]
+    B --> C[Buckets with Timestamps]
+    C --> D{Bucket Merge?<br/>3+ same size}
+    D -->|Yes| E[Merge 2 Oldest<br/>Double Size]
+    D -->|No| F[Keep Buckets]
+    E --> G[Sliding Window Query]
+    F --> G
+    G --> H[Sum Bucket Sizes<br/>within Window]
+```
+
+**Window Configuration:**
+
+| Window Size | Buckets Maintained | Memory | Error Bound |
+|-------------|-------------------|---------|-------------|
+| **1 Hour (3600s)** | O(log² 3600) ≈ 144 | ~2 KB | ≤ 50% |
+| **24 Hours** | O(log² 86400) ≈ 340 | ~5 KB | ≤ 50% |
+| **7 Days** | O(log² 604800) ≈ 450 | ~7 KB | ≤ 50% |
+
+**Application to Taxi Demand:**
+
+| Query Type | DGIM Application | Use Case |
+|------------|------------------|----------|
+| **Recent Trip Count** | Count trips in last 1 hour | Real-time demand surge detection |
+| **Peak Detection** | Count trips in moving 15-min windows | Identify micro-peaks for dynamic pricing |
+| **Day-over-Day** | Compare 24-hour windows | Demand pattern analysis |
+
+### 6.5 Computing Moments Algorithm
+
+**Purpose:** Calculate higher-order statistical moments (variance, skewness, kurtosis) of fare amounts in streaming fashion
+
+```mermaid
+flowchart TD
+    A[Stream: Fare Amount x] --> B[Update Count: n++]
+    B --> C[Update Sum: S₁ += x]
+    C --> D[Update Sum of Squares: S₂ += x²]
+    D --> E[Update Sum of Cubes: S₃ += x³]
+    E --> F[Update Sum of 4th Powers: S₄ += x⁴]
+    F --> G[Compute Moments:<br/>Mean, Variance, Skewness, Kurtosis]
+```
+
+**Moment Definitions:**
+
+| Moment | Formula | Interpretation | Memory |
+|--------|---------|----------------|---------|
+| **1st (Mean)** | μ = S₁/n | Average fare | O(1) |
+| **2nd (Variance)** | σ² = S₂/n - μ² | Fare variability | O(1) |
+| **3rd (Skewness)** | γ = (S₃/n - 3μσ² - μ³)/σ³ | Fare distribution asymmetry | O(1) |
+| **4th (Kurtosis)** | κ = (S₄/n - 4μS₃/n + 6μ²S₂/n - 3μ⁴)/σ⁴ | Outlier detection | O(1) |
+
+**Stratified Moments by Dimension:**
+
+| Dimension | Strata | Moment Insights |
+|-----------|--------|-----------------|
+| **Time of Day** | Hourly buckets | Peak hour fare volatility |
+| **Borough** | 5 NYC boroughs | Geographic fare patterns |
+| **Trip Distance** | Short/Medium/Long | Distance-based pricing distribution |
+
+### 6.6 Graph Stream Algorithm Design
+
+**Purpose:** Analyze trip network structure (zones as nodes, trips as edges) in streaming fashion
+
+```mermaid
+graph LR
+    subgraph "Trip Stream Processing"
+        A[Trip: Zone A → B] --> B[Edge Stream]
+    end
+
+    subgraph "Graph Algorithms"
+        B --> C[Triangle Counting<br/>Community Detection]
+        B --> D[Connected Components<br/>Service Coverage]
+        B --> E[Degree Distribution<br/>Hub Identification]
+    end
+
+    subgraph "Outputs"
+        C --> F[Popular Routes]
+        D --> G[Isolated Zones]
+        E --> H[High-Traffic Hubs]
+    end
+```
+
+**Graph Stream Algorithms:**
+
+| Algorithm | Purpose | Memory | Application |
+|-----------|---------|---------|-------------|
+| **Triangle Counting** | Detect trip cycles (A→B→C→A) | O(√m) edges | Identify circular route patterns |
+| **Gou-Williamson** | Estimate connected components | O(n log n) | Find disconnected service areas |
+| **Degree Sketching** | Track hub zones (high in/out degree) | O(k) counters | Detect major pickup/dropoff hubs |
+| **Spanning Tree Approx** | Minimum connection cost | O(n log n) | Optimize fleet distribution |
+
+**Zone Graph Metrics (2020 vs 2025):**
+
+| Metric | 2020 Baseline | 2025 Target | Insight |
+|--------|---------------|-------------|---------|
+| **Graph Density** | Trips/zone pairs | Post-pandemic change | Service expansion/contraction |
+| **Average Clustering** | Triangle density | Community strength | Route clustering patterns |
+| **Hub Count (degree > 1000)** | Top hubs | Demand shift | High-traffic zone evolution |
+
+## 6.7 Streaming Framework Integration
+
+### Spark Streaming + Flink Dual Processing
+
+**Architecture:**
+
+```mermaid
+graph TB
+    subgraph "Amazon MSK"
+        T1[taxi-trips Topic]
+    end
+
+    subgraph "Spark Structured Streaming on EMR"
+        SS[Micro-batch Processing<br/>5-10 second intervals]
+        SS_ALG[Reservoir Sampling<br/>Bloom Filter<br/>Computing Moments]
+    end
+
+    subgraph "Flink on EMR"
+        FLINK[Event-time Processing<br/>Low-latency < 1s]
+        FLINK_ALG[DGIM Windows<br/>Flajolet-Martin<br/>Graph Streams]
+    end
+
+    subgraph "Results"
+        S3_SPARK[S3: Batch Analytics]
+        S3_FLINK[S3: Real-time Metrics]
+    end
+
+    T1 --> SS
+    T1 --> FLINK
+    SS --> SS_ALG
+    FLINK --> FLINK_ALG
+    SS_ALG --> S3_SPARK
+    FLINK_ALG --> S3_FLINK
+```
+
+**Framework Comparison:**
+
+| Feature | Spark Structured Streaming | Apache Flink |
+|---------|---------------------------|--------------|
+| **Processing Model** | Micro-batch (5-10s) | True streaming (event-time) |
+| **Latency** | Seconds | Milliseconds |
+| **Best For** | Reservoir Sampling, Bloom Filter, Moments | DGIM, Flajolet-Martin, Graph Streams |
+| **State Management** | RocksDB/memory | Distributed snapshots |
+| **EMR Integration** | Native (EMR 6.x+) | EMR 6.x+ application |
+
+## 7. Locality Sensitive Hashing (LSH) Design
+
+### 7.1 LSH for Similar Trip Detection
+
+**Purpose:** Find similar taxi trips (near-duplicate routes, similar fare patterns) without comparing all pairs
+
+```mermaid
+flowchart TD
+    A[Trip Vector:<br/>pickup_zone, dropoff_zone,<br/>fare, distance, duration] --> B[LSH Hash Functions:<br/>Random Hyperplanes]
+    B --> C[Generate Signature:<br/>k-bit hash]
+    C --> D[Bucket Mapping]
+    D --> E{Collision?}
+    E -->|Yes| F[Candidate Pair:<br/>Likely Similar]
+    E -->|No| G[Skip Comparison]
+    F --> H[Verify Similarity:<br/>Cosine/Jaccard]
+```
+
+### 7.2 LSH Configuration for Taxi Data
+
+**Trip Feature Vectorization:**
+
+| Feature Type | Encoding | Dimension |
+|--------------|----------|-----------|
+| **Spatial** | One-hot encode 265 NYC zones | 265-dim |
+| **Temporal** | Hour of day (0-23) one-hot | 24-dim |
+| **Fare** | Normalized fare buckets | 10-dim |
+| **Distance** | Normalized distance buckets | 10-dim |
+| **Total Vector** | Concatenated | 309-dim |
+
+**LSH Parameters:**
+
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| **Hash Functions (k)** | 20 | Balance false positive/negative |
+| **Hash Tables (L)** | 10 | Increase recall |
+| **Signature Length** | 64 bits | Compact representation |
+| **Similarity Threshold** | 0.8 (Jaccard/Cosine) | High similarity detection |
+
+**Applications:**
+
+| Use Case | LSH Application | Benefit |
+|----------|-----------------|---------|
+| **Route Clustering** | Find trips with similar pickup/dropoff zones | Identify popular route templates |
+| **Fare Anomaly Detection** | Detect trips with unusual fare for similar route | Fraud detection |
+| **Demand Prediction** | Find historical trips similar to current request | Accurate fare/time estimates |
+
+### 7.3 MinHash for Trip Set Similarity
+
+**Purpose:** Compare sets of trips (e.g., driver trip histories, hourly trip batches)
+
+| Set Comparison | MinHash Sketches | Jaccard Estimation | Use Case |
+|----------------|------------------|--------------------| ---------|
+| **Driver Similarity** | 128 hash functions | ±0.05 error | Find drivers with similar route patterns |
+| **Hourly Demand** | 64 hash functions | ±0.1 error | Compare demand across time periods |
+| **Zone Affinity** | 256 hash functions | ±0.02 error | Identify zones with similar trip profiles |
+
 ## 7. Ground Truth Baseline Design
 
 ### 7.1 EMR MapReduce Ground Truth Pipeline
@@ -387,7 +624,457 @@ graph LR
 | **Duplicate Count** | Exact duplicate trip_id count | 2020 data quality | 2025 data quality |
 | **Year-over-Year** | Growth rates, pattern shifts | Comparative analysis | Trend identification |
 
-## 8. Performance Evaluation Design
+## 8. Privacy-Preserving Techniques Design
+
+### 8.1 K-Anonymity Implementation
+
+**Purpose:** Protect passenger/driver privacy by ensuring each record is indistinguishable from at least k-1 other records
+
+```mermaid
+flowchart TD
+    A[Raw Trip Data:<br/>pickup_zone, dropoff_zone,<br/>timestamp, fare] --> B[Identify Quasi-identifiers]
+    B --> C[Generalization:<br/>Zones → Boroughs<br/>Timestamp → Hour]
+    C --> D[Suppression:<br/>Remove outliers]
+    D --> E{Each group<br/>size ≥ k?}
+    E -->|No| F[Further Generalization]
+    E -->|Yes| G[K-Anonymous Dataset]
+    F --> E
+```
+
+**Quasi-Identifier Generalization Strategy:**
+
+| Attribute | Original Granularity | K-Anonymized (k=5) | K-Anonymized (k=100) | Information Loss |
+|-----------|---------------------|-------------------|---------------------|------------------|
+| **Pickup Zone** | 265 zones | 71 neighborhoods | 5 boroughs | Low → High |
+| **Dropoff Zone** | 265 zones | 71 neighborhoods | 5 boroughs | Low → High |
+| **Pickup Time** | Second precision | 15-minute bins | 1-hour bins | Low → High |
+| **Trip Date** | Exact date | Week of year | Month | Low → High |
+| **Passenger Count** | Exact (1-6) | Binary (solo/group) | Suppressed | Medium |
+
+**K-Anonymity Configuration:**
+
+| k Value | Privacy Level | Data Utility | Use Case |
+|---------|--------------|--------------|----------|
+| **k=5** | Low | High | Internal analytics |
+| **k=25** | Medium | Medium | Research sharing |
+| **k=100** | High | Low | Public release |
+
+**AWS EMR Implementation:**
+
+| Stage | EMR Component | Process |
+|-------|---------------|---------|
+| **1. Partition** | Spark SQL | Group by quasi-identifiers |
+| **2. Generalization** | UDF in PySpark | Hierarchical generalization (zone→neighborhood→borough) |
+| **3. Validation** | Spark aggregation | Verify group sizes ≥ k |
+| **4. Output** | S3 anonymized bucket | Partitioned Parquet with k-anonymity guarantees |
+
+### 8.2 L-Diversity Implementation
+
+**Purpose:** Enhance k-anonymity by ensuring diversity in sensitive attributes (fare, trip purpose) within each equivalence class
+
+```mermaid
+flowchart LR
+    A[K-Anonymous Groups] --> B{Each group has<br/>≥ L distinct<br/>sensitive values?}
+    B -->|No| C[Merge/Split Groups<br/>Add Noise]
+    B -->|Yes| D[L-Diverse Dataset]
+    C --> B
+```
+
+**Sensitive Attribute Diversity:**
+
+| Sensitive Attribute | L-Diversity Requirement | Verification |
+|---------------------|------------------------|--------------|
+| **Fare Amount** | L=3 distinct fare buckets (low/med/high) | Ensure each k-anonymous group has trips from ≥3 fare tiers |
+| **Trip Distance** | L=4 distance categories | Short/medium/long/very long representation |
+| **Trip Type** | L=2 (business/personal heuristic) | Peak vs off-peak diversity |
+
+**Configuration Matrix:**
+
+| Privacy Model | k | L | Information Preserved | Privacy Guarantee |
+|---------------|---|---|----------------------|-------------------|
+| **Basic** | k=10 | L=3 | 85% | Moderate |
+| **Standard** | k=25 | L=5 | 70% | Strong |
+| **High Privacy** | k=100 | L=10 | 50% | Very Strong |
+
+### 8.3 Differential Privacy Implementation
+
+**Purpose:** Add calibrated noise to aggregate statistics to prevent individual trip identification
+
+```mermaid
+flowchart TD
+    A[True Aggregate Query:<br/>COUNT, AVG, SUM] --> B[Compute Sensitivity Δf]
+    B --> C[Set Privacy Budget ε]
+    C --> D[Generate Laplace Noise:<br/>Lap(Δf/ε)]
+    D --> E[Add Noise to Result]
+    E --> F[Return Noisy Answer]
+```
+
+**Differential Privacy Parameters:**
+
+| Query Type | Sensitivity (Δf) | Privacy Budget (ε) | Noise Scale | Accuracy Trade-off |
+|------------|------------------|-------------------|-------------|-------------------|
+| **Trip Count** | 1 trip | ε=0.1 (strict) | Lap(10) | ±10 trips noise |
+| **Average Fare** | Max fare ($200) | ε=0.5 (moderate) | Lap(400) | ±$8 noise |
+| **Zone Demand** | 1 zone count | ε=1.0 (relaxed) | Lap(1) | ±1 trip noise |
+
+**Composition Budget Management:**
+
+| Time Period | Total Queries | Budget per Query | Total ε Spent | Remaining Privacy |
+|-------------|--------------|------------------|---------------|-------------------|
+| **Daily** | 100 queries | ε=0.01 | ε=1.0 | Refreshes next day |
+| **Weekly** | 500 queries | ε=0.005 | ε=2.5 | Degraded privacy |
+| **Monthly** | 2000 queries | ε=0.001 | ε=2.0 | Careful monitoring |
+
+**AWS Implementation:**
+
+```mermaid
+graph LR
+    subgraph "EMR Spark Streaming"
+        A[Aggregate Query] --> B[DP Module:<br/>Add Laplace Noise]
+    end
+
+    subgraph "Privacy Budget Tracking"
+        C[DynamoDB Privacy Ledger]
+    end
+
+    B --> D[Noisy Result]
+    B --> C
+    C --> E{Budget<br/>Exceeded?}
+    E -->|Yes| F[Block Query]
+    E -->|No| D
+```
+
+### 8.4 Privacy-Utility Trade-off Analysis
+
+| Privacy Technique | Computational Overhead | Memory Overhead | Query Accuracy | Best Use Case |
+|-------------------|----------------------|-----------------|----------------|---------------|
+| **K-Anonymity** | Low (pre-processing) | 1x data size | 80-95% | Microdata release |
+| **L-Diversity** | Medium (grouping) | 1.2x data size | 70-90% | Rich attribute sets |
+| **Differential Privacy** | Low (noise addition) | Minimal | 85-99% (depends on ε) | Aggregate queries |
+| **Combined (K-Anon + DP)** | Medium | 1.2x | 75-90% | Maximum protection |
+
+### 8.5 Privacy-Preserving Analytics Pipeline
+
+```mermaid
+graph TB
+    subgraph "S3 Raw Data"
+        RAW[200M Trip Records<br/>2020 & 2025]
+    end
+
+    subgraph "EMR Privacy Layer"
+        KANON[K-Anonymity Job<br/>k=25, zone generalization]
+        LDIV[L-Diversity Job<br/>L=5, fare diversity]
+        DP[Differential Privacy Module<br/>ε=0.5]
+    end
+
+    subgraph "S3 Protected Data"
+        ANON[Anonymized Microdata<br/>For Research]
+        AGG[DP-Protected Aggregates<br/>For Public API]
+    end
+
+    subgraph "QuickSight Analytics"
+        DASH[Privacy-Safe Dashboards]
+    end
+
+    RAW --> KANON
+    KANON --> LDIV
+    LDIV --> ANON
+    ANON --> DASH
+    RAW --> DP
+    DP --> AGG
+    AGG --> DASH
+```
+
+## 9. Responsible AI & Advanced ML Techniques
+
+### 9.1 Fairness in Dynamic Pricing
+
+**Purpose:** Ensure fare predictions and surge pricing don't discriminate based on protected zone characteristics (income, demographics)
+
+```mermaid
+flowchart TD
+    A[ML Fare Prediction Model] --> B[Fairness Audit]
+    B --> C{Disparate Impact<br/>across zones?}
+    C -->|Yes| D[Identify Bias Source:<br/>Zone features, time patterns]
+    C -->|No| E[Model Approved]
+    D --> F[Apply Fairness Constraints]
+    F --> G[Retrain with:<br/>Equalized Odds<br/>Demographic Parity]
+    G --> B
+```
+
+**Fairness Metrics:**
+
+| Metric | Definition | Threshold | Application |
+|--------|------------|-----------|-------------|
+| **Demographic Parity** | P(fare_surge \| zone_A) ≈ P(fare_surge \| zone_B) | Ratio within [0.8, 1.2] | Equal surge probability across zones |
+| **Equalized Odds** | TPR and FPR equal across zone groups | Difference < 0.1 | Fair demand prediction |
+| **Calibration** | Predicted probabilities match observed rates | R² > 0.9 | Accurate confidence estimates |
+
+**Protected Attributes (Proxy Detection):**
+
+| Direct Attribute | Proxy in Data | Mitigation |
+|------------------|---------------|------------|
+| **Income Level** | Pickup/dropoff zone | Remove zone from model, use coarser spatial features |
+| **Race/Ethnicity** | Neighborhood patterns | Aggregate to borough level |
+| **Disability** | Trip duration anomalies | Avoid penalizing longer trips |
+
+**Fairness-Aware Model Training (EMR Spark MLlib):**
+
+| Stage | Component | Fairness Intervention |
+|-------|-----------|----------------------|
+| **Feature Engineering** | Zone encoding | Use borough instead of zone (71→5 categories) |
+| **Model Training** | Gradient Boosting | Add fairness regularization term |
+| **Post-processing** | Threshold adjustment | Calibrate thresholds per zone group |
+| **Validation** | Holdout test | Measure disparate impact metrics |
+
+### 9.2 Explainable AI (XAI) for Fare Predictions
+
+**Purpose:** Provide interpretable explanations for dynamic fare estimates to build user trust
+
+```mermaid
+graph TB
+    A[Trip Request:<br/>Zone A → B, 3pm] --> B[ML Model Prediction:<br/>$45 fare estimate]
+    B --> C[SHAP Explainer]
+    C --> D[Feature Contributions:<br/>Distance: +$20<br/>Peak Hour: +$15<br/>Weather: +$5<br/>Demand: +$5]
+    D --> E[User-Facing Explanation]
+
+    B --> F[LIME Local Explanation]
+    F --> G[If different time:<br/>2pm → $38 estimate]
+    G --> E
+```
+
+**XAI Techniques:**
+
+| Method | Scope | Computational Cost | Output | Use Case |
+|--------|-------|-------------------|--------|----------|
+| **SHAP (SHapley Additive)** | Global + Local | High (pre-compute on EMR) | Feature importance per trip | Detailed breakdown |
+| **LIME** | Local | Medium (on-demand) | Counterfactual explanations | "What-if" scenarios |
+| **Feature Importance** | Global | Low (model intrinsic) | Overall ranking | Model debugging |
+| **Anchor Explanations** | Local | Low | Decision rules | Simple user explanation |
+
+**Explanation Dashboard (QuickSight):**
+
+| Panel | Visualization | Metric | User Benefit |
+|-------|--------------|--------|--------------|
+| **Fare Breakdown** | Stacked bar chart | Base + distance + time + demand components | Transparent pricing |
+| **Comparison** | Line chart | Your fare vs. typical fare for route | Context understanding |
+| **Sensitivity** | Tornado chart | Impact of changing pickup time ±30min | Trip planning |
+
+### 9.3 Machine Unlearning Implementation
+
+**Purpose:** Remove specific trips (e.g., user data deletion requests, GDPR/CCPA compliance) from trained models
+
+```mermaid
+flowchart TD
+    A[User Deletion Request:<br/>trip_ids to forget] --> B{Model Type}
+    B -->|Linear Models| C[Exact Unlearning:<br/>Update weights using influence functions]
+    B -->|Tree Models| D[Approximate Unlearning:<br/>Retrain affected trees]
+    B -->|Neural Networks| E[SISA Unlearning:<br/>Retrain affected shard]
+
+    C --> F[Validate Forgetting]
+    D --> F
+    E --> F
+    F --> G{Membership<br/>Inference Attack}
+    G -->|Cannot detect| H[Unlearning Success]
+    G -->|Can detect| I[Repeat Unlearning]
+```
+
+**Unlearning Strategies:**
+
+| Model Type | Unlearning Method | Time Complexity | Accuracy Preservation |
+|------------|-------------------|-----------------|----------------------|
+| **Linear Regression** | Influence Function | O(d²) per sample | 100% (exact) |
+| **Random Forest** | Selective Retrain | O(k trees affected) | 98-99% |
+| **Neural Network (SISA)** | Shard Retrain (1 of 10 shards) | O(n/10) samples | 95-98% |
+| **Ensemble Models** | Remove & reweight | O(1) | 90-95% |
+
+**SISA (Sharded, Isolated, Sliced, Aggregated) Architecture on EMR:**
+
+```mermaid
+graph TB
+    subgraph "Data Sharding"
+        D[200M Trips] --> S1[Shard 1<br/>20M trips]
+        D --> S2[Shard 2<br/>20M trips]
+        D --> S10[Shard 10<br/>20M trips]
+    end
+
+    subgraph "Model Training"
+        S1 --> M1[Model 1]
+        S2 --> M2[Model 2]
+        S10 --> M10[Model 10]
+    end
+
+    subgraph "Ensemble"
+        M1 --> AGG[Aggregate Predictions]
+        M2 --> AGG
+        M10 --> AGG
+    end
+
+    subgraph "Unlearning"
+        DEL[Delete trip from<br/>Shard 5] --> RETRAIN[Retrain only Model 5]
+        RETRAIN --> AGG
+    end
+```
+
+**Unlearning Performance:**
+
+| Deletion Request Size | Affected Shards | Retraining Time (EMR) | Model Accuracy Impact |
+|----------------------|----------------|----------------------|----------------------|
+| **1 trip** | 1 shard | ~2 hours | < 0.01% |
+| **100 trips** | 1-2 shards | ~4 hours | < 0.05% |
+| **10,000 trips** | 3-5 shards | ~12 hours | < 0.2% |
+| **1M trips** | All 10 shards | ~48 hours (full retrain) | 0.5-1% |
+
+### 9.4 Federated Learning for Privacy-Preserving Model Training
+
+**Purpose:** Train global fare prediction model without centralizing individual taxi fleet data
+
+```mermaid
+sequenceDiagram
+    participant F1 as Fleet 1 (Yellow Cabs)
+    participant F2 as Fleet 2 (Green Cabs)
+    participant F3 as Fleet 3 (Ride-share)
+    participant Server as EMR Central Server
+
+    Server->>F1: Global Model v1
+    Server->>F2: Global Model v1
+    Server->>F3: Global Model v1
+
+    F1->>F1: Local Training (100K trips)
+    F2->>F2: Local Training (80K trips)
+    F3->>F3: Local Training (120K trips)
+
+    F1->>Server: Model Gradient Δθ₁
+    F2->>Server: Model Gradient Δθ₂
+    F3->>Server: Model Gradient Δθ₃
+
+    Server->>Server: Aggregate: θ = θ + (Δθ₁+Δθ₂+Δθ₃)/3
+    Server->>F1: Updated Model v2
+```
+
+**Federated Learning Configuration:**
+
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| **Clients (Fleets)** | 10 taxi companies | Diverse data sources |
+| **Local Epochs** | 5 per round | Balance communication vs. accuracy |
+| **Communication Rounds** | 100 rounds | Convergence |
+| **Aggregation** | FedAvg (Federated Averaging) | Simple, effective |
+| **Privacy Enhancement** | Secure Aggregation + DP (ε=1.0) | Prevent gradient leakage |
+
+**Advantages for Taxi Industry:**
+
+| Benefit | Impact |
+|---------|--------|
+| **Data Privacy** | Fleets don't share raw trip data (competitive advantage) |
+| **Regulatory Compliance** | GDPR/CCPA compliant (data stays local) |
+| **Improved Accuracy** | Global model learns from 10x more data |
+| **Fairness** | Model sees diverse fleet patterns |
+
+### 9.5 Data Poisoning Detection & Defense
+
+**Purpose:** Detect and mitigate malicious trip injection attacks (fake demand, fare manipulation)
+
+```mermaid
+flowchart TD
+    A[Incoming Trip Stream] --> B[Anomaly Detection:<br/>Isolation Forest, Autoencoder]
+    B --> C{Anomaly Score<br/>> Threshold?}
+    C -->|Yes| D[Potential Poisoning]
+    C -->|No| E[Accept Trip]
+
+    D --> F[Quarantine for Review]
+    F --> G[Human Audit or<br/>Secondary Validation]
+    G --> H{Confirmed<br/>Poisoning?}
+    H -->|Yes| I[Block Source,<br/>Retrain Model]
+    H -->|No| E
+```
+
+**Poisoning Attack Types:**
+
+| Attack Type | Description | Detection Method | Defense |
+|-------------|-------------|------------------|---------|
+| **Label Flipping** | Alter fare amounts in training data | Gradient analysis, outlier detection | Robust loss functions (Huber) |
+| **Feature Manipulation** | Inject fake high-demand trips | Statistical tests (KS-test, χ²) | RANSAC, Median aggregation |
+| **Backdoor Injection** | Trigger-based fare inflation | Activation clustering | Neural Cleanse, Fine-Pruning |
+
+**AWS Detection Pipeline:**
+
+```mermaid
+graph LR
+    subgraph "MSK Stream"
+        TRIPS[Taxi Trips]
+    end
+
+    subgraph "EMR Flink Real-time Detection"
+        AD[Anomaly Detector:<br/>Isolation Forest]
+        STAT[Statistical Tests:<br/>Distribution Shift]
+    end
+
+    subgraph "S3 Quarantine"
+        Q[Suspicious Trips]
+    end
+
+    subgraph "CloudWatch Alerts"
+        ALERT[SNS Notification]
+    end
+
+    TRIPS --> AD
+    TRIPS --> STAT
+    AD --> Q
+    STAT --> Q
+    Q --> ALERT
+```
+
+**Detection Metrics:**
+
+| Metric | Threshold | False Positive Rate | Action |
+|--------|-----------|-------------------|--------|
+| **Isolation Forest Score** | > 0.7 | 1% | Quarantine |
+| **Distribution Shift (KL Divergence)** | > 0.5 | 2% | Alert + Review |
+| **Gradient Norm** | > 3σ from mean | 0.5% | Remove sample |
+
+### 9.6 Responsible AI Governance Framework
+
+```mermaid
+graph TB
+    subgraph "Design Phase"
+        A[Fairness Requirements] --> B[Model Card Documentation]
+        C[Privacy Requirements] --> B
+        D[Explainability Requirements] --> B
+    end
+
+    subgraph "Development Phase"
+        B --> E[Bias Testing]
+        B --> F[Privacy Audit]
+        B --> G[XAI Integration]
+    end
+
+    subgraph "Deployment Phase"
+        E --> H[Continuous Monitoring<br/>CloudWatch Metrics]
+        F --> H
+        G --> H
+        H --> I{Drift or<br/>Bias Detected?}
+        I -->|Yes| J[Trigger Retraining<br/>or Investigation]
+        I -->|No| K[Continue Serving]
+    end
+
+    subgraph "Audit Trail"
+        J --> L[S3 Governance Logs<br/>Model Versions, Decisions]
+        K --> L
+    end
+```
+
+**Model Card Template (S3 Documented):**
+
+| Section | Content | Purpose |
+|---------|---------|---------|
+| **Model Details** | Architecture, hyperparameters, training data (2020/2025) | Reproducibility |
+| **Intended Use** | Fare estimation, demand forecasting | Prevent misuse |
+| **Metrics** | RMSE, MAE, R² + fairness metrics | Performance transparency |
+| **Limitations** | Low accuracy for edge cases (extreme weather) | Set expectations |
+| **Ethical Considerations** | Zone-based bias mitigation, privacy protections | Accountability |
+
+## 10. Performance Evaluation Design
 
 ### 8.1 Accuracy Validation Framework (AWS)
 
