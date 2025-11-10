@@ -1340,7 +1340,491 @@ if __name__ == "__main__":
     main()
 ```
 
-### 7.4 Integrated Spark Streaming Consumer
+### 7.4 Flajolet-Martin Algorithm Implementation
+
+Create: `streaming/flajolet_martin.py`
+
+```python
+import hashlib
+import math
+
+class FlajoletMartin:
+    """Flajolet-Martin algorithm for distinct count estimation"""
+
+    def __init__(self, num_hash_groups=32):
+        """
+        Initialize FM algorithm with multiple hash groups for accuracy
+
+        Args:
+            num_hash_groups: Number of independent hash functions (median of estimates)
+        """
+        self.num_hash_groups = num_hash_groups
+        self.max_trailing_zeros = [0] * num_hash_groups
+        self.items_processed = 0
+
+    def _hash(self, element, seed):
+        """Generate hash value for element with given seed"""
+        hash_input = f"{element}_{seed}".encode('utf-8')
+        return int(hashlib.md5(hash_input).hexdigest(), 16)
+
+    def _count_trailing_zeros(self, n):
+        """Count number of trailing zeros in binary representation"""
+        if n == 0:
+            return 64  # Max for 64-bit hash
+
+        count = 0
+        while (n & 1) == 0:
+            count += 1
+            n >>= 1
+        return count
+
+    def add_element(self, element):
+        """Add element to the stream"""
+        self.items_processed += 1
+
+        for i in range(self.num_hash_groups):
+            hash_val = self._hash(element, i)
+            trailing_zeros = self._count_trailing_zeros(hash_val)
+            self.max_trailing_zeros[i] = max(self.max_trailing_zeros[i], trailing_zeros)
+
+    def estimate_distinct_count(self):
+        """Estimate number of distinct elements using median of estimates"""
+        # Calculate estimate for each hash group
+        estimates = [2 ** tz for tz in self.max_trailing_zeros]
+
+        # Take median to reduce variance
+        estimates.sorted()
+        median_estimate = estimates[len(estimates) // 2]
+
+        # Apply correction factor φ ≈ 0.77351
+        corrected_estimate = int(median_estimate / 0.77351)
+
+        return corrected_estimate
+
+    def get_statistics(self):
+        """Get detailed statistics"""
+        return {
+            'items_processed': self.items_processed,
+            'distinct_estimate': self.estimate_distinct_count(),
+            'hash_groups': self.num_hash_groups,
+            'max_trailing_zeros': self.max_trailing_zeros
+        }
+
+# Demo usage
+if __name__ == "__main__":
+    fm = FlajoletMartin(num_hash_groups=32)
+
+    # Simulate stream with duplicates
+    for i in range(100000):
+        # Add zones (265 unique zones, but 100K total trips)
+        zone = i % 265
+        fm.add_element(f"zone_{zone}")
+
+    stats = fm.get_statistics()
+    print(f"Actual distinct zones: 265")
+    print(f"FM Estimate: {stats['distinct_estimate']}")
+    print(f"Error: {abs(stats['distinct_estimate'] - 265) / 265 * 100:.2f}%")
+```
+
+### 7.5 DGIM Algorithm Implementation
+
+Create: `streaming/dgim.py`
+
+```python
+from collections import deque
+import time
+
+class DGIMBucket:
+    """Bucket for DGIM algorithm"""
+    def __init__(self, size, timestamp):
+        self.size = size
+        self.timestamp = timestamp
+
+class DGIM:
+    """DGIM algorithm for counting 1s in sliding window"""
+
+    def __init__(self, window_size=3600):
+        """
+        Initialize DGIM with window size
+
+        Args:
+            window_size: Window size in seconds (default 1 hour)
+        """
+        self.window_size = window_size
+        self.buckets = deque()
+
+    def add_bit(self, bit):
+        """Add a bit to the stream"""
+        current_time = time.time()
+
+        # Remove expired buckets outside the window
+        while self.buckets and (current_time - self.buckets[0].timestamp) > self.window_size:
+            self.buckets.popleft()
+
+        if bit == 1:
+            # Add new bucket of size 1
+            self.buckets.append(DGIMBucket(1, current_time))
+            self._merge_buckets()
+
+    def _merge_buckets(self):
+        """Merge buckets when there are 3+ of same size"""
+        # Count buckets by size
+        size_counts = {}
+        for bucket in self.buckets:
+            size_counts[bucket.size] = size_counts.get(bucket.size, 0) + 1
+
+        # Find sizes with 3+ buckets
+        for size in sorted(size_counts.keys()):
+            if size_counts[size] >= 3:
+                # Merge the two oldest buckets of this size
+                merged_buckets = []
+                buckets_to_merge = []
+
+                for bucket in self.buckets:
+                    if bucket.size == size and len(buckets_to_merge) < 2:
+                        buckets_to_merge.append(bucket)
+                    else:
+                        merged_buckets.append(bucket)
+
+                if len(buckets_to_merge) == 2:
+                    # Create new bucket with double size, using newer timestamp
+                    new_bucket = DGIMBucket(size * 2, buckets_to_merge[1].timestamp)
+                    merged_buckets.append(new_bucket)
+
+                self.buckets = deque(sorted(merged_buckets, key=lambda b: b.timestamp))
+                break
+
+    def count_ones(self):
+        """Estimate number of 1s in the current window"""
+        if not self.buckets:
+            return 0
+
+        # Sum all bucket sizes
+        total = sum(bucket.size for bucket in self.buckets)
+
+        # Subtract half of the oldest bucket size (error adjustment)
+        if self.buckets:
+            total -= self.buckets[0].size // 2
+
+        return max(0, total)
+
+    def get_statistics(self):
+        """Get DGIM statistics"""
+        return {
+            'window_size': self.window_size,
+            'num_buckets': len(self.buckets),
+            'estimated_ones': self.count_ones(),
+            'bucket_sizes': [b.size for b in self.buckets]
+        }
+
+# Demo usage
+if __name__ == "__main__":
+    dgim = DGIM(window_size=60)  # 1-minute window
+
+    # Simulate binary stream (1 = trip occurred in that second)
+    import random
+    actual_count = 0
+
+    for i in range(120):  # 2 minutes of data
+        bit = random.choice([0, 0, 0, 1])  # 25% trip rate
+        if bit == 1:
+            if i >= 60:  # Only count last minute
+                actual_count += 1
+
+        dgim.add_bit(bit)
+        time.sleep(0.01)  # Simulate real-time
+
+    stats = dgim.get_statistics()
+    print(f"Actual 1s in window: {actual_count}")
+    print(f"DGIM Estimate: {stats['estimated_ones']}")
+    print(f"Error: {abs(stats['estimated_ones'] - actual_count)}")
+```
+
+### 7.6 Computing Moments Implementation
+
+Create: `streaming/moments.py`
+
+```python
+import math
+
+class StreamingMoments:
+    """Compute statistical moments in streaming fashion"""
+
+    def __init__(self):
+        self.n = 0
+        self.S1 = 0.0  # Sum of x
+        self.S2 = 0.0  # Sum of x²
+        self.S3 = 0.0  # Sum of x³
+        self.S4 = 0.0  # Sum of x⁴
+
+    def add_value(self, x):
+        """Add a value to the stream"""
+        self.n += 1
+        self.S1 += x
+        self.S2 += x ** 2
+        self.S3 += x ** 3
+        self.S4 += x ** 4
+
+    def mean(self):
+        """First moment: Mean"""
+        return self.S1 / self.n if self.n > 0 else 0
+
+    def variance(self):
+        """Second moment: Variance"""
+        if self.n == 0:
+            return 0
+        mu = self.mean()
+        return (self.S2 / self.n) - mu ** 2
+
+    def std_dev(self):
+        """Standard deviation"""
+        return math.sqrt(self.variance())
+
+    def skewness(self):
+        """Third moment: Skewness (asymmetry)"""
+        if self.n == 0:
+            return 0
+
+        mu = self.mean()
+        sigma = self.std_dev()
+
+        if sigma == 0:
+            return 0
+
+        # Calculate third central moment
+        m3 = (self.S3 / self.n) - 3 * mu * (self.S2 / self.n) + 2 * mu ** 3
+        return m3 / (sigma ** 3)
+
+    def kurtosis(self):
+        """Fourth moment: Kurtosis (tail heaviness)"""
+        if self.n == 0:
+            return 0
+
+        mu = self.mean()
+        sigma = self.std_dev()
+
+        if sigma == 0:
+            return 0
+
+        # Calculate fourth central moment
+        m4 = (self.S4 / self.n) - 4 * mu * (self.S3 / self.n) + \
+             6 * mu ** 2 * (self.S2 / self.n) - 3 * mu ** 4
+
+        return m4 / (sigma ** 4)
+
+    def get_all_moments(self):
+        """Get all statistical moments"""
+        return {
+            'count': self.n,
+            'mean': self.mean(),
+            'variance': self.variance(),
+            'std_dev': self.std_dev(),
+            'skewness': self.skewness(),
+            'kurtosis': self.kurtosis()
+        }
+
+# Stratified moments for multiple dimensions
+class StratifiedMoments:
+    """Track moments for different strata (hour, zone, etc.)"""
+
+    def __init__(self):
+        self.strata_moments = {}
+
+    def add_value(self, value, stratum_key):
+        """Add value to specific stratum"""
+        if stratum_key not in self.strata_moments:
+            self.strata_moments[stratum_key] = StreamingMoments()
+
+        self.strata_moments[stratum_key].add_value(value)
+
+    def get_stratum_stats(self, stratum_key):
+        """Get statistics for a specific stratum"""
+        if stratum_key in self.strata_moments:
+            return self.strata_moments[stratum_key].get_all_moments()
+        return None
+
+    def get_all_strata_stats(self):
+        """Get statistics for all strata"""
+        return {
+            key: moments.get_all_moments()
+            for key, moments in self.strata_moments.items()
+        }
+
+# Demo usage
+if __name__ == "__main__":
+    import random
+
+    # Test basic moments
+    moments = StreamingMoments()
+
+    # Simulate fare amounts
+    for _ in range(10000):
+        fare = random.gauss(25, 10)  # Mean $25, StdDev $10
+        moments.add_value(fare)
+
+    stats = moments.get_all_moments()
+    print("Fare Statistics:")
+    print(f"  Mean: ${stats['mean']:.2f}")
+    print(f"  Std Dev: ${stats['std_dev']:.2f}")
+    print(f"  Skewness: {stats['skewness']:.3f}")
+    print(f"  Kurtosis: {stats['kurtosis']:.3f}")
+
+    # Test stratified moments
+    strat_moments = StratifiedMoments()
+
+    for _ in range(10000):
+        hour = random.randint(0, 23)
+        fare = random.gauss(25 + hour * 0.5, 10)  # Fare increases slightly by hour
+        strat_moments.add_value(fare, f"hour_{hour}")
+
+    print("\nPeak Hour (17:00) vs Off-Peak (3:00):")
+    peak_stats = strat_moments.get_stratum_stats("hour_17")
+    offpeak_stats = strat_moments.get_stratum_stats("hour_3")
+    print(f"  Peak Mean: ${peak_stats['mean']:.2f}")
+    print(f"  Off-Peak Mean: ${offpeak_stats['mean']:.2f}")
+```
+
+### 7.7 Graph Stream Algorithms Implementation
+
+Create: `streaming/graph_streams.py`
+
+```python
+from collections import defaultdict
+import random
+
+class GraphStreamAnalyzer:
+    """Analyze graph properties in streaming fashion"""
+
+    def __init__(self, edge_sample_size=10000):
+        """
+        Initialize graph stream analyzer
+
+        Args:
+            edge_sample_size: Number of edges to keep in sample
+        """
+        self.edge_sample_size = edge_sample_size
+        self.edge_sample = []
+        self.degree_count = defaultdict(int)
+        self.triangle_estimate = 0
+        self.edge_count = 0
+
+        # Adjacency lists (sampled)
+        self.adjacency = defaultdict(set)
+
+    def add_edge(self, source, dest):
+        """Add edge to the graph stream"""
+        self.edge_count += 1
+
+        # Update degree counts
+        self.degree_count[source] += 1
+        self.degree_count[dest] += 1
+
+        # Reservoir sampling for edges
+        edge = (source, dest)
+        if len(self.edge_sample) < self.edge_sample_size:
+            self.edge_sample.append(edge)
+            self.adjacency[source].add(dest)
+            self.adjacency[dest].add(source)  # Treat as undirected
+        else:
+            # Random replacement
+            j = random.randint(0, self.edge_count - 1)
+            if j < self.edge_sample_size:
+                # Remove old edge from adjacency
+                old_edge = self.edge_sample[j]
+                self.adjacency[old_edge[0]].discard(old_edge[1])
+                self.adjacency[old_edge[1]].discard(old_edge[0])
+
+                # Add new edge
+                self.edge_sample[j] = edge
+                self.adjacency[source].add(dest)
+                self.adjacency[dest].add(source)
+
+        # Update triangle count estimation
+        self._update_triangles(source, dest)
+
+    def _update_triangles(self, u, v):
+        """Estimate triangle count when edge (u,v) is added"""
+        # Check for common neighbors in sampled graph
+        neighbors_u = self.adjacency.get(u, set())
+        neighbors_v = self.adjacency.get(v, set())
+
+        # Each common neighbor forms a triangle with u and v
+        common_neighbors = neighbors_u & neighbors_v
+        self.triangle_estimate += len(common_neighbors)
+
+    def get_hub_zones(self, top_k=10):
+        """Get top-k zones by degree (popularity)"""
+        sorted_zones = sorted(
+            self.degree_count.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        return sorted_zones[:top_k]
+
+    def estimate_clustering_coefficient(self):
+        """Estimate global clustering coefficient"""
+        if self.triangle_estimate == 0:
+            return 0.0
+
+        # Clustering = (3 * triangles) / connected triples
+        # Approximation using sampled graph
+        total_degree = sum(self.degree_count.values())
+        possible_triples = total_degree * (total_degree - 1) / 2
+
+        if possible_triples == 0:
+            return 0.0
+
+        return (3 * self.triangle_estimate) / possible_triples
+
+    def get_degree_distribution(self):
+        """Get degree distribution statistics"""
+        degrees = list(self.degree_count.values())
+        if not degrees:
+            return {}
+
+        return {
+            'min_degree': min(degrees),
+            'max_degree': max(degrees),
+            'avg_degree': sum(degrees) / len(degrees),
+            'num_nodes': len(self.degree_count)
+        }
+
+    def get_statistics(self):
+        """Get all graph statistics"""
+        return {
+            'total_edges': self.edge_count,
+            'sampled_edges': len(self.edge_sample),
+            'triangle_estimate': self.triangle_estimate,
+            'clustering_coefficient': self.estimate_clustering_coefficient(),
+            'degree_distribution': self.get_degree_distribution(),
+            'top_hubs': self.get_hub_zones(10)
+        }
+
+# Demo usage
+if __name__ == "__main__":
+    graph = GraphStreamAnalyzer(edge_sample_size=1000)
+
+    # Simulate trip network (zones as nodes, trips as edges)
+    for _ in range(10000):
+        # Random trips between 265 zones
+        pickup = random.randint(1, 265)
+        dropoff = random.randint(1, 265)
+
+        if pickup != dropoff:
+            graph.add_edge(pickup, dropoff)
+
+    stats = graph.get_statistics()
+    print("Graph Stream Statistics:")
+    print(f"  Total edges: {stats['total_edges']:,}")
+    print(f"  Triangle estimate: {stats['triangle_estimate']:,}")
+    print(f"  Clustering coefficient: {stats['clustering_coefficient']:.4f}")
+    print(f"  Avg degree: {stats['degree_distribution']['avg_degree']:.2f}")
+    print(f"\nTop 5 Hub Zones:")
+    for zone, degree in stats['top_hubs'][:5]:
+        print(f"    Zone {zone}: {degree} connections")
+```
+
+### 7.8 Integrated Spark Streaming Consumer (Updated)
 
 Create: `streaming/spark_streaming_consumer.py`
 
@@ -1350,11 +1834,15 @@ from pyspark.sql.functions import *
 from pyspark.sql.types import *
 from reservoir_sampling import ReservoirSampler
 from bloom_filter import BloomFilter
+from flajolet_martin import FlajoletMartin
+from dgim import DGIM
+from moments import StratifiedMoments
+from graph_streams import GraphStreamAnalyzer
 import json
 
 def create_spark_session():
     return SparkSession.builder \
-        .appName("StreamTide-Streaming") \
+        .appName("StreamTide-Complete-Streaming") \
         .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0") \
         .getOrCreate()
 
@@ -1374,6 +1862,15 @@ def process_stream(bootstrap_servers, topic, checkpoint_path, output_path):
         StructField("total_amount", DoubleType()),
         StructField("trip_id", StringType())
     ])
+
+    # Initialize all streaming algorithms
+    reservoir = ReservoirSampler(sample_size=100000, strata_keys=['hour'])
+    bloom = BloomFilter(expected_items=10000000, false_positive_rate=0.01)
+    fm_zones = FlajoletMartin(num_hash_groups=32)
+    fm_passengers = FlajoletMartin(num_hash_groups=32)
+    dgim = DGIM(window_size=3600)
+    moments = StratifiedMoments()
+    graph = GraphStreamAnalyzer(edge_sample_size=10000)
 
     # Read from Kafka
     df = spark.readStream \
@@ -1395,7 +1892,73 @@ def process_stream(bootstrap_servers, topic, checkpoint_path, output_path):
         .withColumn("hour", hour(col("pickup_datetime"))) \
         .withColumn("processing_time", current_timestamp())
 
-    # Windowed aggregations (simulating reservoir sampling at scale)
+    # Custom streaming processing with foreachBatch
+    def process_batch(batch_df, epoch_id):
+        """Process each micro-batch with all algorithms"""
+
+        batch_data = batch_df.collect()
+
+        for row in batch_data:
+            trip = row.asDict()
+
+            # Reservoir Sampling
+            reservoir.add(trip)
+
+            # Bloom Filter (duplicate detection)
+            is_duplicate = bloom.add_and_check(trip['trip_id'])
+
+            # Flajolet-Martin (distinct counts)
+            fm_zones.add_element(trip['PULocationID'])
+            fm_passengers.add_element(trip['passenger_count'])
+
+            # DGIM (trip counts in sliding window)
+            dgim.add_bit(1)  # Each trip = 1
+
+            # Computing Moments (fare statistics by hour)
+            moments.add_value(trip['fare_amount'], f"hour_{trip['hour']}")
+
+            # Graph Streams (zone network)
+            graph.add_edge(trip['PULocationID'], trip['DOLocationID'])
+
+        # Aggregate results for this batch
+        results = {
+            'epoch_id': epoch_id,
+            'batch_size': len(batch_data),
+
+            # Reservoir Sampling stats
+            'reservoir_stats': reservoir.get_statistics(),
+
+            # Bloom Filter stats
+            'bloom_stats': bloom.get_stats(),
+
+            # Flajolet-Martin estimates
+            'distinct_zones_estimate': fm_zones.estimate_distinct_count(),
+            'distinct_passengers_estimate': fm_passengers.estimate_distinct_count(),
+
+            # DGIM count
+            'trips_in_last_hour': dgim.count_ones(),
+
+            # Moments statistics (sample hours)
+            'peak_hour_stats': moments.get_stratum_stats('hour_17'),
+            'offpeak_hour_stats': moments.get_stratum_stats('hour_3'),
+
+            # Graph statistics
+            'graph_stats': graph.get_statistics()
+        }
+
+        # Save results to S3
+        results_df = spark.createDataFrame([results])
+        results_df.write.mode("append").json(
+            f"{output_path}/algorithm-results/epoch-{epoch_id}/"
+        )
+
+        print(f"\nEpoch {epoch_id} Results:")
+        print(f"  Processed: {results['batch_size']} trips")
+        print(f"  Distinct zones (FM): {results['distinct_zones_estimate']}")
+        print(f"  Trips in last hour (DGIM): {results['trips_in_last_hour']}")
+        print(f"  Bloom filter duplicates: {results['bloom_stats']['duplicates_detected']}")
+
+    # Windowed aggregations for comparison
     windowed_stats = enriched_df \
         .withWatermark("processing_time", "10 minutes") \
         .groupBy(
@@ -1408,16 +1971,23 @@ def process_stream(bootstrap_servers, topic, checkpoint_path, output_path):
             expr("percentile_approx(fare_amount, 0.5)").alias("median_fare")
         )
 
-    # Write streaming query
-    query = windowed_stats.writeStream \
-        .outputMode("append") \
-        .format("parquet") \
-        .option("path", output_path) \
-        .option("checkpointLocation", checkpoint_path) \
+    # Write streaming query with custom processing
+    query1 = enriched_df.writeStream \
+        .foreachBatch(process_batch) \
+        .option("checkpointLocation", f"{checkpoint_path}/algorithms/") \
         .trigger(processingTime='30 seconds') \
         .start()
 
-    query.awaitTermination()
+    query2 = windowed_stats.writeStream \
+        .outputMode("append") \
+        .format("parquet") \
+        .option("path", f"{output_path}/windowed-stats/") \
+        .option("checkpointLocation", f"{checkpoint_path}/windowed/") \
+        .trigger(processingTime='30 seconds') \
+        .start()
+
+    query1.awaitTermination()
+    query2.awaitTermination()
 
 if __name__ == "__main__":
     import sys
