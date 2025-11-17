@@ -1,0 +1,46 @@
+{
+  "basic_statistics": {
+    "metric": [],
+    "ground_truth": [],
+    "streaming": [],
+    "absolute_error": [],
+    "percentage_error": []
+  },
+  "cardinality_estimation": {
+    "zones": {
+      "actual": 208,
+      "estimated": 208,
+      "error": 0,
+      "error_percentage": 0.0
+    },
+    "vendors": {
+      "actual": 2,
+      "estimated": 2,
+      "error": 0,
+      "error_percentage": 0.0
+    }
+  },
+  "frequency_moments": {
+    "F0": {
+      "actual": 123,
+      "estimated": 123,
+      "error_percentage": 0.0
+    },
+    "F1": {
+      "actual": 10000,
+      "estimated": 10000,
+      "error_percentage": 0.0
+    },
+    "F2": {
+      "actual": 2743860,
+      "estimated": 2450000,
+      "error_percentage": 10.70973008826981
+    }
+  },
+  "assessment": [
+    "\u2705 HyperLogLog (Zones): Excellent (0.00% error)",
+    "\u2705 F0: Excellent (0.00% error)",
+    "\u2705 F1: Excellent (0.00% error)",
+    "\u2713 F2: Good (10.71% error)"
+  ]
+}

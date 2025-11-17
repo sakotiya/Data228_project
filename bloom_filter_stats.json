@@ -1,0 +1,21 @@
+{
+  "configuration": {
+    "bit_array_size": 9585059,
+    "hash_functions": 7,
+    "expected_elements": 1000000,
+    "target_fp_rate": 0.01
+  },
+  "usage": {
+    "elements_added": 10000,
+    "duplicates_detected": 7,
+    "queries_performed": 10000,
+    "duplicate_rate": 0.0007
+  },
+  "performance": {
+    "bits_set": 69715,
+    "fill_ratio": 0.007273298995864292,
+    "actual_fp_rate": 1.0800122179582333e-15,
+    "memory_bytes": 1198132,
+    "memory_mb": 1.1426277160644531
+  }
+}

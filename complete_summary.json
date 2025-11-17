@@ -1,0 +1,161 @@
+{
+  "run_metadata": {
+    "start_time": "2025-11-16 18:11:03.083642",
+    "end_time": "2025-11-16 18:11:06.121768",
+    "duration_seconds": 3.038132
+  },
+  "processing": {
+    "start_time": "2025-11-16 18:11:03.083642",
+    "total_records": 10000,
+    "total_batches": 10,
+    "duplicates": 7,
+    "busy_trips": 2978
+  },
+  "algorithms": {
+    "reservoir_sampling": {
+      "total_records_processed": 10000,
+      "reservoir_size": 10000,
+      "sampling_rate": 1.0,
+      "reservoir_stats": {
+        "avg_fare": 18.285565348022033,
+        "avg_distance": 2.978504048582996,
+        "sample_count": 10000
+      },
+      "stream_stats": {
+        "avg_fare": 18.28556534802201,
+        "avg_distance": 2.9471827741612517,
+        "total_trips": 9985
+      },
+      "top_hours": {
+        "0": 5734,
+        "1": 4248,
+        "23": 15,
+        "20": 2,
+        "21": 1
+      },
+      "top_zones": {
+        "79": 549,
+        "142": 484,
+        "237": 408,
+        "161": 402,
+        "239": 384,
+        "263": 363,
+        "234": 352,
+        "107": 339,
+        "249": 321,
+        "48": 318
+      }
+    },
+    "bloom_filter": {
+      "configuration": {
+        "bit_array_size": 9585059,
+        "hash_functions": 7,
+        "expected_elements": 1000000,
+        "target_fp_rate": 0.01
+      },
+      "usage": {
+        "elements_added": 10000,
+        "duplicates_detected": 7,
+        "queries_performed": 10000,
+        "duplicate_rate": 0.0007
+      },
+      "performance": {
+        "bits_set": 69715,
+        "fill_ratio": 0.007273298995864292,
+        "actual_fp_rate": 1.0800122179582333e-15,
+        "memory_bytes": 1198132,
+        "memory_mb": 1.1426277160644531
+      }
+    },
+    "hyperloglog_zones": {
+      "precision": 14,
+      "num_registers": 16384,
+      "total_elements_seen": 20000,
+      "actual_distinct": 208,
+      "estimated_distinct": 208,
+      "error": 0,
+      "error_percentage": 0.0,
+      "theoretical_std_error_percentage": 0.8125,
+      "registers_used": 207,
+      "registers_used_percentage": 1.263427734375,
+      "memory_bytes": 16384
+    },
+    "hyperloglog_vendors": {
+      "precision": 12,
+      "num_registers": 4096,
+      "total_elements_seen": 10000,
+      "actual_distinct": 2,
+      "estimated_distinct": 2,
+      "error": 0,
+      "error_percentage": 0.0,
+      "theoretical_std_error_percentage": 1.625,
+      "registers_used": 2,
+      "registers_used_percentage": 0.048828125,
+      "memory_bytes": 4096
+    },
+    "dgim": {
+      "window_size": 1000,
+      "current_timestamp": 10000,
+      "total_bits_seen": 10000,
+      "total_ones_seen": 2978,
+      "estimated_ones_in_window": 481,
+      "num_buckets": 12,
+      "bucket_sizes": [
+        128,
+        128,
+        64,
+        32,
+        32,
+        16,
+        8,
+        4,
+        2,
+        2,
+        1,
+        1
+      ],
+      "memory_usage_buckets": 12,
+      "theoretical_max_buckets": 200
+    },
+    "moments": {
+      "total_elements": 10000,
+      "distinct_elements": 123,
+      "num_variables": 50,
+      "moments": {
+        "F0": {
+          "estimated": 123,
+          "actual": 123,
+          "error": 0,
+          "error_percentage": 0.0
+        },
+        "F1": {
+          "estimated": 10000,
+          "actual": 10000,
+          "error": 0,
+          "error_percentage": 0.0
+        },
+        "F2": {
+          "estimated": 2450000,
+          "actual": 2743860,
+          "error": 293860,
+          "error_percentage": 10.70973008826981
+        }
+      },
+      "insights": {
+        "average_frequency": 81.30081300813008,
+        "surprise_number": 2743860,
+        "gini_coefficient": 0.1656460081016141
+      }
+    },
+    "lsh": {
+      "num_items": 0,
+      "num_hash_functions": 100,
+      "num_bands": 20,
+      "rows_per_band": 5,
+      "total_buckets": 0,
+      "num_comparisons": 0,
+      "candidate_pairs": 0,
+      "average_bucket_size": 0.0
+    }
+  }
+}

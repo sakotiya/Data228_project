@@ -1,0 +1,13 @@
+{
+  "precision": 14,
+  "num_registers": 16384,
+  "total_elements_seen": 20000,
+  "actual_distinct": 208,
+  "estimated_distinct": 208,
+  "error": 0,
+  "error_percentage": 0.0,
+  "theoretical_std_error_percentage": 0.8125,
+  "registers_used": 207,
+  "registers_used_percentage": 1.263427734375,
+  "memory_bytes": 16384
+}

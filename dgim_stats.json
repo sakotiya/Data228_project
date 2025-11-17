@@ -1,0 +1,24 @@
+{
+  "window_size": 1000,
+  "current_timestamp": 10000,
+  "total_bits_seen": 10000,
+  "total_ones_seen": 2978,
+  "estimated_ones_in_window": 481,
+  "num_buckets": 12,
+  "bucket_sizes": [
+    128,
+    128,
+    64,
+    32,
+    32,
+    16,
+    8,
+    4,
+    2,
+    2,
+    1,
+    1
+  ],
+  "memory_usage_buckets": 12,
+  "theoretical_max_buckets": 200
+}
