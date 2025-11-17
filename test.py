@@ -1,0 +1,8 @@
+import pandas as pd
+
+
+df = pd.read_parquet('/Users/shreya/SJSU-Github/DA228/streaming/sample_data/yellow_tripdata_2025-01.parquet')
+print(f'Total records in file: {len(df):,}')
+print(f'First 3 rows:')
+print(df.head(3))
+print(f'\nColumn names: {list(df.columns)}')
