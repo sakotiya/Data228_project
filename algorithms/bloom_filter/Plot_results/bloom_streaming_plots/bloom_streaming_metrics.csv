@@ -1,0 +1,13 @@
+Metric,Value
+Total Records Processed,"53,194,401"
+Unique Records Kept,"52,653,164"
+Duplicates Removed,"541,237"
+Duplicate Rate (%),1.02
+Processing Time (seconds),211
+Throughput (rows/sec),"252,106"
+Bloom Filter Size (MB),286
+Bloom Filter Capacity,"250,000,000"
+Bloom Filter Elements,"250,000,001"
+Fill Ratio (%),100.00
+False Positive Rate (%),1.00
+Space Savings vs Hash Table (%),97.0
