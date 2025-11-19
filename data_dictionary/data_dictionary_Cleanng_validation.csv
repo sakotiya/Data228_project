@@ -1,0 +1,101 @@
+File,Raw Rows,Clean Rows,Raw - Clean,cleaned %,removed %,Raw Cols,Clean Cols,Dropped Cols,Added Cols,Major Null Reduction
+fhv_tripdata_2015-02.parquet,3053183,3053183,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2015-12.parquet,8888809,8888809,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2019-02.parquet,1707650,1707650,0,100.0,0.0,7,7,,,False
+fhv_tripdata_2019-12.parquet,2044196,2044196,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-01.parquet,1290116,1290116,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-02.parquet,1176093,1176093,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-03.parquet,1469352,1469352,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-04.parquet,1444626,1444626,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-05.parquet,1352502,1352502,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-06.parquet,1386539,1386539,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-07.parquet,1382739,1382739,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-08.parquet,1484471,1484471,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-09.parquet,1718375,1718375,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-10.parquet,1421231,1421231,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-11.parquet,1591082,1591082,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2024-12.parquet,1913200,1913200,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2025-01.parquet,1898108,1898108,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2025-02.parquet,1578722,1578722,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2025-03.parquet,2182992,2182992,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2025-04.parquet,1699478,1699478,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2025-05.parquet,2210721,2210721,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2025-06.parquet,2231731,2231731,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2025-07.parquet,2187536,2187536,0,100.0,0.0,7,6,SR_Flag,,True
+fhv_tripdata_2025-08.parquet,2256854,2256854,0,100.0,0.0,7,6,SR_Flag,,True
+fhvhv_tripdata_2019-02.parquet,20159102,20159102,0,100.0,0.0,24,22,"airport_fee, wav_match_flag",,True
+fhvhv_tripdata_2019-12.parquet,22243901,22243901,0,100.0,0.0,24,24,,,True
+fhvhv_tripdata_2024-01.parquet,19663930,19663930,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-02.parquet,19359148,19359148,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-03.parquet,21280788,21280788,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-04.parquet,19733038,19733038,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-05.parquet,20704538,20704538,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-06.parquet,20123226,20123226,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-07.parquet,19182934,19182934,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-08.parquet,19128392,19128392,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-09.parquet,19209788,19209788,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-10.parquet,20028282,20028282,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-11.parquet,19987533,19987533,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2024-12.parquet,21068851,21068851,0,100.0,0.0,24,24,,,False
+fhvhv_tripdata_2025-01.parquet,20405666,20405666,0,100.0,0.0,25,25,,,False
+fhvhv_tripdata_2025-02.parquet,19339461,19339461,0,100.0,0.0,25,25,,,False
+fhvhv_tripdata_2025-03.parquet,20536879,20536879,0,100.0,0.0,25,25,,,False
+fhvhv_tripdata_2025-04.parquet,19753983,19753983,0,100.0,0.0,25,25,,,False
+fhvhv_tripdata_2025-05.parquet,21091193,21091193,0,100.0,0.0,25,25,,,False
+fhvhv_tripdata_2025-06.parquet,19868009,19868009,0,100.0,0.0,25,25,,,False
+fhvhv_tripdata_2025-07.parquet,19653012,19653012,0,100.0,0.0,25,25,,,False
+fhvhv_tripdata_2025-08.parquet,19271461,19271461,0,100.0,0.0,25,25,,,False
+green_tripdata_2014-02.parquet,1005242,1004969,273,99.97,0.03,20,17,"congestion_surcharge, ehail_fee, improvement_surcharge",,True
+green_tripdata_2014-12.parquet,1645787,1643114,2673,99.84,0.16,20,18,"congestion_surcharge, ehail_fee",,True
+green_tripdata_2015-02.parquet,1574830,1572027,2803,99.82,0.18,20,18,"congestion_surcharge, ehail_fee",,True
+green_tripdata_2015-12.parquet,1608297,1604779,3518,99.78,0.22,20,18,"congestion_surcharge, ehail_fee",,True
+green_tripdata_2019-02.parquet,615594,612380,3214,99.48,0.52,20,20,,,True
+green_tripdata_2019-12.parquet,455294,450335,4959,98.91,1.09,20,19,ehail_fee,,True
+green_tripdata_2024-01.parquet,56551,55809,742,98.69,1.31,20,19,ehail_fee,,True
+green_tripdata_2024-02.parquet,53577,52835,742,98.62,1.38,20,19,ehail_fee,,True
+green_tripdata_2024-03.parquet,57457,56681,776,98.65,1.35,20,19,ehail_fee,,True
+green_tripdata_2024-04.parquet,56471,55802,669,98.82,1.18,20,19,ehail_fee,,True
+green_tripdata_2024-05.parquet,61003,60208,795,98.7,1.3,20,19,ehail_fee,,True
+green_tripdata_2024-06.parquet,54748,54014,734,98.66,1.34,20,19,ehail_fee,,True
+green_tripdata_2024-07.parquet,51837,51123,714,98.62,1.38,20,19,ehail_fee,,True
+green_tripdata_2024-08.parquet,51771,51016,755,98.54,1.46,20,19,ehail_fee,,True
+green_tripdata_2024-09.parquet,54440,53678,762,98.6,1.4,20,19,ehail_fee,,True
+green_tripdata_2024-10.parquet,56147,55366,781,98.61,1.39,20,19,ehail_fee,,True
+green_tripdata_2024-11.parquet,52222,51377,845,98.38,1.62,20,19,ehail_fee,,True
+green_tripdata_2024-12.parquet,53994,53063,931,98.28,1.72,20,19,ehail_fee,,True
+green_tripdata_2025-01.parquet,48326,47506,820,98.3,1.7,21,20,ehail_fee,,True
+green_tripdata_2025-02.parquet,46621,45847,774,98.34,1.66,21,20,ehail_fee,,True
+green_tripdata_2025-03.parquet,51539,50756,783,98.48,1.52,21,20,ehail_fee,,True
+green_tripdata_2025-04.parquet,52132,51322,810,98.45,1.55,21,20,ehail_fee,,True
+green_tripdata_2025-05.parquet,55399,54441,958,98.27,1.73,21,20,ehail_fee,,True
+green_tripdata_2025-06.parquet,49390,48352,1038,97.9,2.1,21,20,ehail_fee,,True
+green_tripdata_2025-07.parquet,48205,47296,909,98.11,1.89,21,20,ehail_fee,,True
+green_tripdata_2025-08.parquet,46306,45475,831,98.21,1.79,21,20,ehail_fee,,True
+yellow_tripdata_2009-02.parquet,13380122,13380122,0,100.0,0.0,18,16,"Rate_Code, mta_tax",,True
+yellow_tripdata_2009-12.parquet,14583404,14583404,0,100.0,0.0,18,17,Rate_Code,,True
+yellow_tripdata_2014-02.parquet,13063794,13063681,113,100.0,0.0,19,17,"airport_fee, congestion_surcharge",,True
+yellow_tripdata_2014-12.parquet,13112117,13105964,6153,99.95,0.05,19,17,"airport_fee, congestion_surcharge",,True
+yellow_tripdata_2015-02.parquet,12442394,12429977,12417,99.9,0.1,19,17,"airport_fee, congestion_surcharge",,True
+yellow_tripdata_2015-12.parquet,11452996,11447795,5201,99.95,0.05,19,17,"airport_fee, congestion_surcharge",,True
+yellow_tripdata_2019-02.parquet,7049370,6920741,128629,98.18,1.82,19,18,airport_fee,,True
+yellow_tripdata_2019-12.parquet,6896317,6746824,149493,97.83,2.17,19,18,airport_fee,,True
+yellow_tripdata_2024-01.parquet,2964624,2895631,68993,97.67,2.33,19,19,,,True
+yellow_tripdata_2024-02.parquet,3007526,2932683,74843,97.51,2.49,19,19,,,True
+yellow_tripdata_2024-03.parquet,3582628,3483658,98970,97.24,2.76,19,19,,,True
+yellow_tripdata_2024-04.parquet,3514289,3416960,97329,97.23,2.77,19,19,,,True
+yellow_tripdata_2024-05.parquet,3723833,3623970,99863,97.32,2.68,19,19,,,True
+yellow_tripdata_2024-06.parquet,3539193,3441506,97687,97.24,2.76,19,19,,,True
+yellow_tripdata_2024-07.parquet,3076903,2988953,87950,97.14,2.86,19,19,,,True
+yellow_tripdata_2024-08.parquet,2979183,2894471,84712,97.16,2.84,19,19,,,True
+yellow_tripdata_2024-09.parquet,3633030,3529402,103628,97.15,2.85,19,19,,,True
+yellow_tripdata_2024-10.parquet,3833771,3722475,111296,97.1,2.9,19,19,,,True
+yellow_tripdata_2024-11.parquet,3646369,3546370,99999,97.26,2.74,19,19,,,True
+yellow_tripdata_2024-12.parquet,3668371,3559383,108988,97.03,2.97,19,19,,,True
+yellow_tripdata_2025-01.parquet,3475226,3306273,168953,95.14,4.86,20,20,,,True
+yellow_tripdata_2025-02.parquet,3577543,3372961,204582,94.28,5.72,20,20,,,True
+yellow_tripdata_2025-03.parquet,4145257,3913606,231651,94.41,5.59,20,20,,,True
+yellow_tripdata_2025-04.parquet,3970553,3760427,210126,94.71,5.29,20,20,,,True
+yellow_tripdata_2025-05.parquet,4591845,4242250,349595,92.39,7.61,20,20,,,True
+yellow_tripdata_2025-06.parquet,4322960,4024343,298617,93.09,6.91,20,20,,,True
+yellow_tripdata_2025-07.parquet,3898963,3631053,267910,93.13,6.87,20,20,,,True
+yellow_tripdata_2025-08.parquet,3574091,3295362,278729,92.2,7.8,20,20,,,True
