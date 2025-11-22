@@ -16,13 +16,62 @@ import pandas as pd
 from pybloom_live import BloomFilter
 
 
+def _load_env_file(path: str = ".env") -> None:
+    """
+    Lightweight .env loader so local paths can be configured without
+    hard‑coding usernames or absolute directories in code.
+    """
+    try:
+        if not os.path.isfile(path):
+            return
+        with open(path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                os.environ.setdefault(key, value)
+    except Exception:
+        # Fail silently – scripts will fall back to default paths
+        pass
+
+
+_load_env_file()
+
+
 # -----------------------------------------------------------------------
-# CONFIGURATION
+# CONFIGURATION (can be overridden via .env or environment variables)
 # -----------------------------------------------------------------------
-BLOOM_PATH = "/Users/gouravdhama/Documents/bubu/big_data/git/bloom_all_years.pkl"  # Historical Bloom filter
-STAGING_DIR = "/Users/gouravdhama/Documents/bubu/big_data/git/2025_files/"  # STREAMING DATA LOCATION
-OUTPUT_DIR = "/Users/gouravdhama/Documents/bubu/big_data/git/dedup/2025_stream_dedup"  # Output location
-UPDATED_BLOOM_PATH = "/Users/gouravdhama/Documents/bubu/big_data/git/bloom_all_years_plus2025.pkl"  # Updated filter
+
+# Base local directory for Bloom artefacts and 2025 files
+_DEFAULT_GIT_DIR = "/Users/vidushi/Documents/bubu/big_data/git"
+GIT_DIR = os.environ.get("DATA228_GIT_DIR", _DEFAULT_GIT_DIR)
+
+# Historical Bloom filter
+BLOOM_PATH = os.environ.get(
+    "DATA228_BLOOM_PATH",
+    os.path.join(GIT_DIR, "bloom_all_years.pkl"),
+)
+
+# STREAMING DATA LOCATION (local parquet files for 2025)
+STAGING_DIR = os.environ.get(
+    "DATA228_2025_FILES_DIR",
+    os.path.join(GIT_DIR, "2025_files"),
+)
+
+# Output location for deduplicated 2025 batches
+OUTPUT_DIR = os.environ.get(
+    "DATA228_DEDUP_OUTPUT_DIR",
+    os.path.join(GIT_DIR, "dedup", "2025_stream_dedup"),
+)
+
+# Updated Bloom filter path (after including 2025 uniques)
+UPDATED_BLOOM_PATH = os.environ.get(
+    "DATA228_UPDATED_BLOOM_PATH",
+    os.path.join(GIT_DIR, "bloom_all_years_plus2025.pkl"),
+)
 
 # Optional: subset of columns to keep/write; set to None to keep all
 COLUMNS_TO_KEEP = None

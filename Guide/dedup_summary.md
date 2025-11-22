@@ -6,10 +6,10 @@
 November 18, 2025
 
 ### Configuration
-- **Historical Bloom Filter**: `/Users/gouravdhama/Documents/bubu/big_data/git/bloom_all_years.pkl`
-- **Input Data Directory**: `/Users/gouravdhama/Documents/bubu/big_data/git/2025_files/`
-- **Output Directory**: `/Users/gouravdhama/Documents/bubu/big_data/git/dedup/2025_stream_dedup/`
-- **Updated Bloom Filter**: `/Users/gouravdhama/Documents/bubu/big_data/git/bloom_all_years_plus2025.pkl`
+- **Historical Bloom Filter**: `$DATA228_GIT_DIR/bloom_all_years.pkl`
+- **Input Data Directory**: `$DATA228_2025_FILES_DIR`
+- **Output Directory**: `$DATA228_DEDUP_OUTPUT_DIR`
+- **Updated Bloom Filter**: `$DATA228_UPDATED_BLOOM_PATH`
 
 ### Bloom Filter Statistics
 - **Capacity**: 250,000,000 elements
@@ -41,19 +41,9 @@ November 18, 2025
 
 All deduplicated data saved as Snappy-compressed Parquet files:
 
-```
-/Users/gouravdhama/Documents/bubu/big_data/git/dedup/2025_stream_dedup/
-├── batch_01.parquet (26M)
-├── batch_02.parquet (21M)
-├── batch_03.parquet (507M)
-├── batch_04.parquet (515M)
-├── batch_05.parquet (1.4M)
-├── batch_06.parquet (1.3M)
-├── batch_07.parquet (82M)
-└── batch_08.parquet (78M)
-
-Total: ~1.23 GB
-```
+All deduplicated data is written under the directory configured by
+`DATA228_DEDUP_OUTPUT_DIR` (for example,
+`/Users/vidushi/Documents/bubu/big_data/git/dedup/2025_stream_dedup/`).
 
 ### Key Observations
 

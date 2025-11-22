@@ -73,8 +73,12 @@ pip install pandas numpy pyarrow networkx matplotlib seaborn
 
 ### Execute
 ```bash
-cd /Users/gouravdhama/Documents/bubu/big_data
+# Option 1: Use environment variable (recommended)
+export DATA228_2025_FILES_DIR="/Users/vidushi/Documents/bubu/big_data/old/2025_files"
 python pagerank_demand_optimization.py
+
+# Option 2: If you set DATA228_2025_FILES_DIR in a .env file, just run:
+# python pagerank_demand_optimization.py
 ```
 
 ### Expected Runtime

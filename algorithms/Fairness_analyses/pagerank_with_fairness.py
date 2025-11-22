@@ -19,6 +19,8 @@ from typing import Dict, List, Tuple, Any
 import warnings
 warnings.filterwarnings('ignore')
 
+import os
+
 # ML Libraries
 import networkx as nx
 
@@ -29,6 +31,30 @@ import seaborn as sns
 # Set style
 sns.set_style("whitegrid")
 plt.rcParams['figure.figsize'] = (12, 6)
+
+
+def _load_env_file(path: str = ".env") -> None:
+    """
+    Lightweight .env loader so local data directories can be configured
+    without hard‑coding user‑specific absolute paths.
+    """
+    try:
+        if not os.path.isfile(path):
+            return
+        with open(path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                os.environ.setdefault(key, value)
+    except Exception:
+        pass
+
+
+_load_env_file()
 
 
 class TaxiZoneGraph:
@@ -319,7 +345,8 @@ def main():
     print("="*70)
     
     # Load 2025 data
-    data_dir = Path("/Users/gouravdhama/Documents/bubu/big_data/old/2025_files")
+    default_2025_dir = "/Users/vidushi/Documents/bubu/big_data/old/2025_files"
+    data_dir = Path(os.environ.get("DATA228_2025_FILES_DIR", default_2025_dir))
     print(f"\n📂 Loading data from: {data_dir}")
     
     dfs = []

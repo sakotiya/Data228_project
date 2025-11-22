@@ -12,13 +12,35 @@ import os
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 import matplotlib.patches as mpatches
 
+
+def _load_env_file(path: str = ".env") -> None:
+    """Simple .env loader so output paths can be customized per machine."""
+    try:
+        if not os.path.isfile(path):
+            return
+        with open(path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                os.environ.setdefault(key, value)
+    except Exception:
+        pass
+
+
+_load_env_file()
+
 # Set style
 sns.set_style("whitegrid")
 plt.rcParams['figure.figsize'] = (16, 10)
 plt.rcParams['font.size'] = 10
 
-# Output directory
-output_dir = "/Users/gouravdhama/Documents/bubu/big_data/git/bloom_streaming_plots"
+# Output directory (overridable via DATA228_BLOOM_STREAMING_PLOTS_DIR)
+_DEFAULT_STREAMING_DIR = "/Users/vidushi/Documents/bubu/big_data/git/bloom_streaming_plots"
+output_dir = os.environ.get("DATA228_BLOOM_STREAMING_PLOTS_DIR", _DEFAULT_STREAMING_DIR)
 os.makedirs(output_dir, exist_ok=True)
 
 # ============================================================================
