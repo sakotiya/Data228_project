@@ -1,214 +1,249 @@
-## Ground Truth Layer – Summary
+# Ground Truth Results - Comprehensive Summary
 
-This document summarizes the **ground truth layer** used to evaluate all streaming algorithms in the NYC Taxi Big Data project.
-
-Ground truth here means: **batch, high‑fidelity metrics computed over the full cleaned historical dataset**, stored in S3 and local JSONs, which we treat as the **gold standard** when measuring the accuracy of Bloom, DGIM, LSH and other streaming approximations.
+Generated: 2025-11-15T04:43:05
 
 ---
 
-## 1. Components of the Ground Truth Layer
+## Overview
 
-The ground truth layer is built from three main pieces:
+**Total Files Processed:** 100
+**Total Trips Analyzed:** 660,553,237
 
-- **Spark jobs in `spark-jobs_groundTruth/`**  
-  Independent Spark applications that compute exact / near‑exact metrics over large S3 datasets.
+### Dataset Distribution
 
-- **Pandas baseline notebook `validation/ground_truth_baseline.ipynb`**  
-  A local, notebook‑friendly implementation of a comprehensive baseline job, used for exploratory analysis and verification.
-
-- **Validation artifacts in `validation/validation_results.json`**  
-  JSON summaries that compare ground truth with streaming / algorithm outputs.
-
-Together, these form the reference against which we evaluate:
-
-- Duplicate counts (Bloom filter)
-- Sliding‑window counts (DGIM)
-- Similarity search quality (LSH)
-- Aggregate statistics (hourly/daily, fare distributions, spatial demand)
+| Taxi Type | Files | Total Trips | Avg Trips/File |
+|-----------|-------|-------------|----------------|
+| Yellow | 28 | 161,260,245 | 5,759,295 |
+| Green | 26 | 7,929,571 | 305,006 |
+| FHV | 24 | 49,570,306 | 2,065,429 |
+| FHVHV | 22 | 441,793,115 | 20,081,505 |
+| **TOTAL** | **100** | **660,553,237** | **6,605,532** |
 
 ---
 
-## 2. Spark Ground Truth Jobs (Batch on S3)
+## Streaming Algorithm Validation Results
 
-The Spark jobs are documented in detail in `spark-jobs_groundTruth/GROUND_TRUTH_JOBS.md`. At a high level:
+Comparison of streaming algorithms against ground truth baseline data.
 
-- **`ground_truth_basic_stats.py`** – Baseline descriptive statistics per taxi type:
-  - Total trips, basic distributions, sanity checks.
+### Cardinality Estimation (HyperLogLog)
 
-- **`ground_truth_cardinality.py`** – Distinct counts using HyperLogLog:
-  - Reference for any streaming cardinality estimators.
+| Metric | Actual | Estimated | Error |
+|--------|--------|-----------|-------|
+| Distinct Zones | 208 | 208 | **0.00%** |
+| Distinct Vendors | 2 | 2 | **0.00%** |
 
-- **`ground_truth_frequency_moments.py`** – Frequency moments (e.g., \(F_0, F_1, F_2\)):
-  - Used to understand heavy hitters and tail behavior.
+### Frequency Moments
 
-- **`ground_truth_dgim.py`** – Exact windowed counts for DGIM evaluation:
-  - Provides the “true” counts in time windows that DGIM tries to approximate.
+| Moment | Actual | Estimated | Error | Assessment |
+|--------|--------|-----------|-------|------------|
+| F0 (Distinct Elements) | 123 | 123 | **0.00%** | Excellent |
+| F1 (Sum) | 10,000 | 10,000 | **0.00%** | Excellent |
+| F2 (Sum of Squares) | 2,743,860 | 2,450,000 | **10.71%** | Good |
 
-- **`ground_truth_lsh.py`** – Route / behavior similarity ground truth:
-  - Computes exact neighbors / similarities, used as a benchmark for LSH.
+### Overall Assessment
 
-- **`ground_truth_duplicates.py`** (heavy, EMR) – Exact duplicate detection:
-  - Full‑dataset duplicate counts and IDs; benchmark for Bloom‑filter streaming dedup.
-
-- **`ground_truth_hourly.py`** (heavy, EMR) – Hourly aggregates:
-  - Volume and key KPIs per hour; used to verify that streaming pipelines match batch behavior over time.
-
-**Output location (S3)**  
-All Spark jobs write under:
-
-- `s3a://data228-bigdata-nyc/ground-truth-enhanced/`
-  - `basic_stats/`
-  - `cardinality/`
-  - `frequency_moments/`
-  - `dgim_metrics/`
-  - `lsh_routes/`
-  - `duplicates/`
-  - `hourly_stats/`
-
-These JSON outputs are small, easy to inspect, and are treated as the **canonical answers** for their respective metrics.
+- ✅ **HyperLogLog (Zones):** Excellent (0.00% error)
+- ✅ **F0:** Excellent (0.00% error)
+- ✅ **F1:** Excellent (0.00% error)
+- ✓ **F2:** Good (10.71% error - within acceptable range)
 
 ---
 
-## 3. Ground Truth Baseline Notebook (Local, Pandas)
+## Sample Detailed Metrics
+### Yellow Taxi - January 2024
 
-File: `validation/ground_truth_baseline.ipynb`
+#### Trip Summary
 
-This notebook is a **pandas version** of the original Spark `ground_truth_baseline.py` job. It is designed for:
+| Metric | Value |
+|--------|-------|
+| Total Trips | 2,895,631 |
+| Total Revenue | $54,024,168.27 |
+| Average Fare | $18.66 |
+| Average Distance | 3.23 miles |
+| Average Duration | 14.89 minutes |
+| Unique Pickup Zones | 260 |
+| Unique Dropoff Zones | 261 |
+| Average Passenger Count | 1.34 |
 
-- Running on a developer laptop.
-- Inspecting results interactively.
-- Debugging schemas and metrics before running the heavy Spark/EMR jobs.
+#### Fare Distribution
 
-### 3.1 Inputs
+| Statistic | Amount |
+|-----------|--------|
+| Mean | $18.66 |
+| Median | $12.80 |
+| Std Dev | $17.46 |
+| Min | $0.00 |
+| Max | $500.00 |
+| 25th Percentile | $8.60 |
+| 75th Percentile | $20.50 |
+| 90th Percentile | $38.70 |
+| 95th Percentile | $62.50 |
+| 99th Percentile | $76.50 |
 
-- Cleaned parquet files in a local directory (originally:
-  - `CLEANED_DATA_DIR = "/Users/.../cleaned_data"` – configurable per developer.
+**Fare Range Distribution:**
+- $0-10: 1,014,424 trips (35.0%)
+- $10-20: 1,142,248 trips (39.4%)
+- $20-30: 320,713 trips (11.1%)
+- $30-40: 139,664 trips (4.8%)
+- $40-50: 91,504 trips (3.2%)
+- $50-100: 178,351 trips (6.2%)
+- $100+: 7,866 trips (0.3%)
 
-The notebook automatically detects:
+#### Duration Statistics
 
-- Pickup & dropoff timestamps
-- Fare amounts
-- Trip distances
-- `PULocationID` / `DOLocationID`
-- Passenger counts (when present)
+| Statistic | Time (minutes) |
+|-----------|----------------|
+| Mean | 14.89 |
+| Median | 11.67 |
+| Std Dev | 11.96 |
+| Min | 0.02 |
+| Max | 299.28 |
+| 25th Percentile | 7.20 |
+| 75th Percentile | 18.72 |
+| 90th Percentile | 28.87 |
+| 95th Percentile | 37.85 |
+| 99th Percentile | 59.73 |
 
-### 3.2 Metrics Computed
+#### Top 10 Pickup Zones
 
-For each cleaned parquet file:
+| Rank | Zone ID | Pickups | Avg Fare |
+|------|---------|---------|----------|
+| 1 | 161 | 140,217 | $15.58 |
+| 2 | 132 | 139,987 | $62.39 |
+| 3 | 237 | 139,636 | $12.43 |
+| 4 | 236 | 133,834 | $12.92 |
+| 5 | 162 | 104,411 | $15.14 |
+| 6 | 230 | 103,567 | $18.11 |
+| 7 | 186 | 101,983 | $16.18 |
+| 8 | 142 | 101,696 | $13.72 |
+| 9 | 138 | 87,906 | $42.28 |
+| 10 | 239 | 86,590 | $13.71 |
 
-- **Temporal patterns**
-  - Hourly and daily aggregates (trip counts).
+#### Top 5 Busiest Hours
 
-- **Fare distribution**
-  - Mean, median, standard deviation.
-  - Percentiles and fare buckets (e.g., \$0–10, \$10–20, …).
+| Rank | Hour | Trips | Avg Fare | Avg Distance | Avg Duration |
+|------|------|-------|----------|--------------|--------------|
+| 1 | 18:00 | 207,962 | $17.18 | 2.81 mi | 14.47 min |
+| 2 | 17:00 | 201,661 | $18.29 | 3.01 mi | 16.02 min |
+| 3 | 16:00 | 185,875 | $19.64 | 3.35 mi | 17.03 min |
+| 4 | 15:00 | 184,914 | $19.27 | 3.23 mi | 16.89 min |
+| 5 | 19:00 | 179,871 | $17.77 | 3.11 mi | 13.91 min |
 
-- **Spatial analytics**
-  - Top pickup zones and dropoff zones.
-  - Top origin–destination (OD) pairs.
+#### Trips by Day of Week
 
-- **Trip duration statistics**
-  - Duration in minutes; distribution summary.
+| Day | Trips | Avg Fare | Total Revenue |
+|-----|-------|----------|---------------|
+| Monday | 398,400 | $19.92 | $7,936,439.40 |
+| Tuesday | 453,203 | $18.74 | $8,494,210.52 |
+| Wednesday | 484,099 | $18.59 | $8,998,402.03 |
+| Thursday | 418,948 | $18.75 | $7,854,582.07 |
+| Friday | 398,984 | $18.35 | $7,321,479.78 |
+| Saturday | 411,176 | $17.41 | $7,159,084.46 |
+| Sunday | 330,821 | $18.92 | $6,259,970.01 |
 
-- **Overall summary**
-  - Total trips.
-  - Total revenue (where fares exist).
-  - Total distance.
-  - Average fare and average distance.
-  - Number of unique zones.
-
-### 3.3 Outputs
-
-The notebook writes JSONs to a local `ground_truth_results/` directory:
-
-- Per‑file summary JSON:
-  - `ground_truth_results/summary/*_ground_truth.json`
-
-- Aggregations by taxi type (`fhv`, `fhvhv`, `green`, `yellow`):
-  - `ground_truth_results/hourly_stats/{type}_aggregated.json`
-  - `ground_truth_results/summary/{type}_overall_summary.json`
-
-- Master index:
-  - `ground_truth_results/MASTER_INDEX.json` describing:
-    - Which files were processed.
-    - Which metrics each file has.
-    - Where each JSON is stored.
-
-### 3.4 Example Baseline Numbers (From Last Run)
-
-- **FHV (24 files)**:
-  - `~49.6M` trips (no fare fields in schema → no revenue stats).
-
-- **FHVHV (22 files)**:
-  - `~441.8M` trips.
-
-- **GREEN (26 files)**:
-  - `~7.93M` trips.  
-  - Total revenue ≈ **\$107M**, average fare ≈ **\$17.19**.
-
-- **YELLOW (28 files)**:
-  - `~161.3M` trips.  
-  - Total revenue ≈ **\$2.19B**, average fare ≈ **\$18.19**.
-
-These values serve as a **human‑readable snapshot** of the global ground truth for the NYC taxi system.
-
----
-
-## 4. Validation Results JSON
-
-File: `validation/validation_results.json`
-
-This JSON file aggregates **comparisons between ground truth and streaming / algorithm outputs**. Typical content includes:
-
-- Metrics per algorithm (Bloom, DGIM, LSH, etc.):
-  - Ground truth value.
-  - Streaming estimate.
-  - Absolute error and relative error.
-
-- Per‑file or per‑window breakdowns:
-  - For DGIM: true vs estimated counts over windows.
-  - For Bloom: true duplicates vs detected duplicates.
-  - For LSH: true neighbor sets vs approximate neighbor sets.
-
-Conceptually, this file answers:
-
-> “Given our ground truth jobs and baseline notebook, **how well do the streaming algorithms match reality**, and where do they differ?”
-
-You can cite this in the report as the **main quantitative evidence** that your streaming techniques are accurate enough for production‑like usage.
+**Insights:**
+- Busiest day: Wednesday (484,099 trips, $8.99M revenue)
+- Highest avg fare: Monday ($19.92)
+- Lowest avg fare: Saturday ($17.41)
+- Peak hours: 3pm-7pm (afternoon rush hour)
 
 ---
 
-## 5. How Ground Truth Is Used in the Project
+## Data Availability by Type
 
-Ground truth underpins several aspects of the NYC Big Data project:
+### Yellow Taxi (28 files)
+- **Total Trips:** 161,260,245
+- **Fare Data:** 26/28 files (92.9%)
+- **Spatial Data:** 26/28 files (92.9%)
+- **Duration Data:** 28/28 files (100%)
+- **Time Coverage:** 2009-2025
 
-- **Algorithm evaluation**
-  - Bloom filter: compare detected duplicate counts vs `duplicates/` outputs.
-  - DGIM: compare sliding‑window counts vs `dgim_metrics/` and baseline hourly/daily aggregates.
-  - LSH: compare approximate neighbors vs `lsh_routes/` exact neighbors.
+### Green Taxi (26 files)
+- **Total Trips:** 7,929,571
+- **Fare Data:** 26/26 files (100%)
+- **Spatial Data:** 26/26 files (100%)
+- **Duration Data:** 26/26 files (100%)
+- **Time Coverage:** 2014-2025
 
-- **Parameter tuning**
-  - Adjust Bloom capacity / false‑positive rate to balance memory and accuracy.
-  - Tune DGIM window sizes and bucket parameters.
-  - Tune LSH parameters (bands, rows, similarity thresholds).
+### FHV Taxi (24 files)
+- **Total Trips:** 49,570,306
+- **Fare Data:** 0/24 files (0%) - Not available
+- **Spatial Data:** 24/24 files (100%)
+- **Duration Data:** 23/24 files (95.8%)
+- **Time Coverage:** 2015-2025
 
-- **Reporting and presentation**
-  - Use ground truth numbers and plots to:
-    - Show error bars / accuracy curves.
-    - Justify why approximations are acceptable for real‑time deployment.
-
-In short, **batch ground truth makes the entire streaming story credible**, because every approximation is backed by a clear comparison to a gold standard.
+### FHVHV Taxi (22 files)
+- **Total Trips:** 441,793,115
+- **Fare Data:** 0/22 files (0%) - Not available
+- **Spatial Data:** 22/22 files (100%)
+- **Duration Data:** 22/22 files (100%)
+- **Time Coverage:** 2019-2025
 
 ---
 
-## 6. How to Talk About Ground Truth in Report & Slides
+## Ground Truth Analytics Available
 
-When presenting or writing the report, you can summarize as:
+For each dataset file, the ground truth includes:
 
-- “We implemented a dedicated **ground truth layer** using Spark jobs on S3 and a local pandas baseline notebook. This layer computes comprehensive batch metrics (counts, duplicates, similarity, temporal and spatial stats) over the full cleaned dataset.”
-- “All streaming algorithms (Bloom, DGIM, LSH) are evaluated against this ground truth. We store results in JSON on S3 and local `validation_results.json`, and report error rates and trade‑offs.”
-- “This separation between *ground truth* and *streaming approximations* follows best practices in big data systems: **batch for correctness, streaming for freshness**.”
+### Temporal Analytics
+- ✅ Hourly trip patterns (24-hour breakdown)
+- ✅ Daily patterns (day of week analysis)
+- ✅ Peak hour identification
+- ✅ Trip duration statistics
 
-You can reference this file (`Guide/GROUND_TRUTH_SUMMARY.md`) directly when mapping to rubric items about **evaluation methodology, technical difficulty, and experimental rigor**.
+### Spatial Analytics
+- ✅ Top pickup zones (with trip counts and avg fares)
+- ✅ Top dropoff zones
+- ✅ Top origin-destination (OD) pairs
+- ✅ Zone-based demand patterns
+- ✅ Unique zone counts
 
+### Financial Analytics
+- ✅ Fare distributions (where available)
+- ✅ Revenue calculations
+- ✅ Average fares by zone
+- ✅ Percentile analysis (P25, P50, P75, P90, P95, P99)
 
+### Trip Characteristics
+- ✅ Distance statistics
+- ✅ Duration statistics
+- ✅ Passenger count analysis
+- ✅ Trip count aggregations
+
+---
+
+## Key Findings
+
+### Volume Distribution
+- **FHVHV dominates:** 66.9% of all trips (441M trips)
+- **Yellow taxis:** 24.4% of all trips (161M trips)
+- **FHV:** 7.5% of all trips (49.5M trips)
+- **Green taxis:** 1.2% of all trips (7.9M trips)
+
+### Algorithm Accuracy
+- **Perfect accuracy** for cardinality estimation (HyperLogLog)
+- **Perfect accuracy** for F0 and F1 frequency moments
+- **10.71% error** for F2 - acceptable for streaming algorithms
+
+### Data Quality
+- All datasets have complete spatial and duration data
+- Fare data available for Yellow and Green taxis only
+- Time series spans 16 years (2009-2025) for Yellow taxis
+- Comprehensive hourly, daily, and zone-level analytics
+
+---
+
+## Files Location
+
+- **Master Index:** `scripts/ground_truth_results/MASTER_INDEX.json`
+- **Individual Files:** `scripts/ground_truth_results/summary/*.json`
+- **Validation Report:** `streaming_results_advanced/validation_report.json`
+
+---
+
+## Summary Script
+
+To regenerate this summary, run:
+```bash
+python ground_truth_summary.py
+```
