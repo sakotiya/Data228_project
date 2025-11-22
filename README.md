@@ -69,6 +69,12 @@ This README gives a concise overview you can reuse in your **report** and **slid
 High‑level and component‑level architecture diagrams are maintained under:
 
 - `graphs/tech_design/` – **system and dataflow schematics** (architecture, ingestion → S3 → Redshift → Kafka → prod, etc.).
+  - **Overall flow (simple)**  
+    ![NYC Big Data Pipeline – Simple Flow](graphs/tech_design/flowchart_FINAL_simple_hires.png)
+  - **Detailed component view**  
+    ![NYC Big Data Pipeline – Detailed Architecture](graphs/tech_design/flowchart_FINAL_detailed_hires.png)
+  - **Historical vs Streaming timeline**  
+    ![NYC Big Data Pipeline – Timeline View](graphs/tech_design/flowchart_FINAL_timeline_hires.png)
 - `graphs/bloomFilter_graph/` – Bloom filter architecture, streaming timeline, and use‑case diagrams.
   - `bloom_analysis_plots/`
   - `bloom_streaming_plots/`
