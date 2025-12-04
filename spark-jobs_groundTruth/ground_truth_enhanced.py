@@ -324,7 +324,7 @@ def main():
 
     # Configuration
     INPUT_PATH = "s3a://data228-bigdata-nyc/staging/*.parquet"
-    OUTPUT_PATH = "s3a://data228-bigdata-nyc/ground-truth-enhanced"
+    OUTPUT_PATH = "s3a://data228-bigdata-nyc/prod/ground-truth-enhanced/"
 
     print(f"""
     ========================================
